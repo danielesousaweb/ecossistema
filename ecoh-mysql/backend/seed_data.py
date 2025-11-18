@@ -31,8 +31,6 @@ async def seed_database():
         
         # Clear existing data
         logger.info("Clearing existing data...")
-        await db.delete_products({})  # This will fail, let's use raw SQL
-        
         async with db.acquire() as conn:
             async with conn.cursor() as cursor:
                 await cursor.execute("DELETE FROM hemera_products")
