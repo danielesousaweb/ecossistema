@@ -1,0 +1,236 @@
+╔══════════════════════════════════════════════════════════════╗
+║         CHECKLIST DE INSTALAÇÃO - ECOH MySQL Edition         ║
+║              Servidor Já Configurado (Apache)                ║
+╔══════════════════════════════════════════════════════════════╗
+
+📋 ANTES DE COMEÇAR - Informações Necessárias:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Servidor Web:
+  □ IP: _______________________
+  □ Usuário: __________________
+  □ Senha: ____________________
+  □ Diretório: ________________
+
+Servidor Banco de Dados:
+  □ IP: _______________________
+  □ Database: _________________
+  □ Usuário: __________________
+  □ Senha: ____________________
+
+
+═══════════════════════════════════════════════════════════════
+PASSO 1: CRIAR TABELAS NO BANCO
+═══════════════════════════════════════════════════════════════
+
+Escolha UMA opção:
+
+□ Opção A - MySQL Workbench (Interface Gráfica):
+  □ Abrir MySQL Workbench
+  □ Nova Conexão com IP do banco
+  □ File → Open SQL Script → schema.sql
+  □ Executar (⚡ raio)
+  □ Verificar 5 tabelas criadas
+
+□ Opção B - Linha de Comando:
+  mysql -h [IP_BANCO] -u [USER] -p [DATABASE] < schema.sql
+
+□ Opção C - phpMyAdmin:
+  □ Acessar phpMyAdmin
+  □ Selecionar banco
+  □ Aba SQL
+  □ Copiar conteúdo do schema.sql
+  □ Executar
+
+✅ VERIFICAÇÃO: 5 tabelas devem estar criadas:
+   - acf_schema
+   - hemera_products  
+   - status_checks
+   - sync_logs
+   - webhook_events
+
+
+═══════════════════════════════════════════════════════════════
+PASSO 2: UPLOAD DO PROJETO PARA O SERVIDOR
+═══════════════════════════════════════════════════════════════
+
+Escolha UMA opção:
+
+□ Opção A - FileZilla (Recomendado):
+  □ Baixar FileZilla
+  □ Conectar: sftp://[IP_SERVIDOR]
+  □ Navegar até diretório fornecido
+  □ Arrastar pasta 'backend' do PC para servidor
+
+□ Opção B - SCP (Linux/Mac):
+  scp -r ecoh-mysql/backend [user]@[IP]:[diretorio]/
+
+□ Opção C - WinSCP (Windows):
+  □ Baixar WinSCP
+  □ Nova conexão SFTP
+  □ Arrastar pasta 'backend'
+
+✅ VERIFICAÇÃO: Pasta 'backend' deve estar no servidor
+
+
+═══════════════════════════════════════════════════════════════
+PASSO 3: CONFIGURAR O PROJETO NO SERVIDOR
+═══════════════════════════════════════════════════════════════
+
+□ 3.1. Conectar via SSH:
+      ssh [usuario]@[IP_SERVIDOR]
+
+□ 3.2. Ir para o diretório:
+      cd [diretorio_fornecido]/backend
+
+□ 3.3. Editar .env:
+      nano .env
+      
+      Preencher com dados REAIS:
+      □ MYSQL_HOST=[IP do banco]
+      □ MYSQL_USER=[usuario do banco]
+      □ MYSQL_PASSWORD=[senha do banco]
+      □ MYSQL_DATABASE=[nome do banco]
+      □ CORS_ORIGINS=[dominio ou IP do servidor]
+      
+      Salvar: Ctrl+X → Y → Enter
+
+□ 3.4. Criar ambiente virtual:
+      python3 -m venv venv
+      source venv/bin/activate
+
+□ 3.5. Instalar dependências:
+      pip install --upgrade pip
+      pip install -r requirements.txt
+
+□ 3.6. Testar conexão com banco:
+      python test_db.py
+      
+      ✅ Deve mostrar: "Conexão MySQL bem-sucedida!"
+
+□ 3.7. Popular banco (OPCIONAL):
+      python seed_data.py
+      
+      ✅ Deve mostrar: "Products synced: 5"
+
+
+═══════════════════════════════════════════════════════════════
+PASSO 4: CONFIGURAR APACHE (httpd)
+═══════════════════════════════════════════════════════════════
+
+□ 4.1. Criar arquivo WSGI:
+      cat > wsgi.py << 'EOF'
+      [copiar conteúdo do guia]
+      EOF
+
+□ 4.2. Criar configuração Apache:
+      sudo nano /etc/httpd/conf.d/ecoh.conf
+      
+      [copiar template do guia e preencher caminhos]
+
+□ 4.3. Testar configuração:
+      sudo apachectl configtest
+      
+      ✅ Deve mostrar: "Syntax OK"
+
+□ 4.4. Reiniciar Apache:
+      sudo systemctl restart httpd
+
+□ 4.5. Verificar status:
+      sudo systemctl status httpd
+      
+      ✅ Deve mostrar: "active (running)"
+
+
+═══════════════════════════════════════════════════════════════
+PASSO 5: TESTAR A API
+═══════════════════════════════════════════════════════════════
+
+□ 5.1. Teste no servidor:
+      curl http://localhost/api/
+      
+      ✅ Deve retornar JSON com "MySQL Edition"
+
+□ 5.2. Teste do seu computador:
+      http://[IP_SERVIDOR]/api/
+      
+      No navegador ou:
+      curl http://[IP_SERVIDOR]/api/
+
+□ 5.3. Testar endpoints:
+      □ http://[IP]/api/products
+      □ http://[IP]/api/graph/complete
+      □ http://[IP]/api/webhooks/sync-status
+
+
+═══════════════════════════════════════════════════════════════
+PASSO 6: VERIFICAÇÃO FINAL
+═══════════════════════════════════════════════════════════════
+
+□ Banco de dados:
+  □ 5 tabelas criadas
+  □ Conexão funcionando
+  
+□ Servidor Web:
+  □ Apache rodando
+  □ Sem erros no log
+  
+□ Aplicação:
+  □ API respondendo
+  □ Produtos listando (se populou)
+  □ Grafo funcionando
+
+□ Arquivos de Log:
+  □ /var/log/httpd/ecoh_error.log (vazio ou sem erros)
+  □ /var/log/httpd/ecoh_access.log (com requisições)
+
+
+═══════════════════════════════════════════════════════════════
+🎉 INSTALAÇÃO CONCLUÍDA!
+═══════════════════════════════════════════════════════════════
+
+URLs de Acesso:
+  API Principal: http://[IP_SERVIDOR]/api/
+  Produtos: http://[IP_SERVIDOR]/api/products
+  Grafo 3D: http://[IP_SERVIDOR]/api/graph/complete
+  Status: http://[IP_SERVIDOR]/api/webhooks/sync-status
+
+
+═══════════════════════════════════════════════════════════════
+❌ SE ALGO DER ERRADO
+═══════════════════════════════════════════════════════════════
+
+1. Ver logs do Apache:
+   sudo tail -50 /var/log/httpd/ecoh_error.log
+
+2. Ver status do Apache:
+   sudo systemctl status httpd
+
+3. Testar conexão MySQL:
+   mysql -h [IP_BANCO] -u [USER] -p [DB]
+
+4. Verificar permissões:
+   ls -la [diretorio]/backend/
+
+5. Verificar .env:
+   cat [diretorio]/backend/.env
+
+6. Reiniciar Apache:
+   sudo systemctl restart httpd
+
+
+═══════════════════════════════════════════════════════════════
+📚 DOCUMENTAÇÃO COMPLETA
+═══════════════════════════════════════════════════════════════
+
+Consulte: INSTALACAO_SERVIDOR_EXISTENTE.md
+  - Instruções detalhadas passo a passo
+  - Exemplos de configuração
+  - Troubleshooting completo
+  - Comandos úteis
+
+
+═══════════════════════════════════════════════════════════════
+Versão: 2.0.0-mysql
+Data: 2025-11-18
+═══════════════════════════════════════════════════════════════
