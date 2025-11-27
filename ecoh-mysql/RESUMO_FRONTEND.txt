@@ -1,0 +1,118 @@
+═══════════════════════════════════════════════════════════════
+🎨 INSTALAÇÃO RÁPIDA DO FRONTEND
+═══════════════════════════════════════════════════════════════
+
+✅ PASSO 6: VERIFICAÇÃO DO BACKEND
+───────────────────────────────────────────────────────────────
+
+No servidor, execute:
+
+cd /home/daniele.sousa/backend
+
+# Testar banco
+python3 -c "import pymysql, os; from dotenv import load_dotenv; load_dotenv(); conn = pymysql.connect(host=os.environ['MYSQL_HOST'], user=os.environ['MYSQL_USER'], password=os.environ['MYSQL_PASSWORD'], database=os.environ['MYSQL_DATABASE']); print('✅ Banco OK'); conn.close()"
+
+# Testar API
+curl http://localhost/api/
+
+# Resultado esperado: JSON com "MySQL Edition"
+
+
+═══════════════════════════════════════════════════════════════
+🎨 INSTALAR FRONTEND - 5 PASSOS
+═══════════════════════════════════════════════════════════════
+
+1️⃣ UPLOAD DO FRONTEND
+   → FileZilla/WinSCP: Arrastar pasta 'frontend' para /home/daniele.sousa/
+
+2️⃣ CONFIGURAR .env
+   ssh daniele.sousa@[IP]
+   cd /home/daniele.sousa/frontend
+   nano .env
+   
+   Adicionar:
+   REACT_APP_BACKEND_URL=http://[SEU_IP]/api
+
+3️⃣ INSTALAR NODE.JS + YARN
+   # Node.js
+   curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+   sudo yum install -y nodejs
+   
+   # Yarn
+   npm install -g yarn
+
+4️⃣ BUILD DO FRONTEND
+   cd /home/daniele.sousa/frontend
+   yarn install    # 3-5 minutos
+   yarn build      # 2-3 minutos
+
+5️⃣ CONFIGURAR APACHE
+   sudo nano /etc/httpd/conf.d/ecoh.conf
+   
+   Adicionar ANTES de </VirtualHost>:
+   
+   # FRONTEND
+   DocumentRoot /home/daniele.sousa/frontend/build
+   
+   <Directory /home/daniele.sousa/frontend/build>
+       Options -Indexes +FollowSymLinks
+       AllowOverride All
+       Require all granted
+       
+       RewriteEngine On
+       RewriteBase /
+       RewriteRule ^index\.html$ - [L]
+       RewriteCond %{REQUEST_FILENAME} !-f
+       RewriteCond %{REQUEST_FILENAME} !-d
+       RewriteRule . /index.html [L]
+   </Directory>
+   
+   Salvar e:
+   sudo systemctl restart httpd
+
+
+═══════════════════════════════════════════════════════════════
+✅ TESTAR
+═══════════════════════════════════════════════════════════════
+
+Abrir no navegador:
+http://[IP_SERVIDOR]/
+
+Deve aparecer:
+✅ Interface React do ECOH
+✅ Visualização 3D (Three.js)
+✅ Menu de navegação
+
+
+═══════════════════════════════════════════════════════════════
+📊 URLS FINAIS
+═══════════════════════════════════════════════════════════════
+
+Frontend:    http://[IP]/
+API:         http://[IP]/api/
+Produtos:    http://[IP]/api/products
+Grafo 3D:    http://[IP]/api/graph/complete
+
+
+═══════════════════════════════════════════════════════════════
+🆘 SE DER ERRO
+═══════════════════════════════════════════════════════════════
+
+# Ver logs
+sudo tail -50 /var/log/httpd/ecoh_error.log
+
+# Verificar build
+ls -la /home/daniele.sousa/frontend/build/
+
+# Corrigir permissões
+sudo chown -R apache:apache /home/daniele.sousa/frontend/
+
+
+═══════════════════════════════════════════════════════════════
+📚 DOCUMENTAÇÃO COMPLETA
+═══════════════════════════════════════════════════════════════
+
+Consulte: INSTALACAO_FRONTEND.md
+
+
+Tempo total: ~10-15 minutos
