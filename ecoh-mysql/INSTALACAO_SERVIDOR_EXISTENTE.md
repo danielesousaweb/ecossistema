@@ -128,7 +128,7 @@ ssh [usuario]@[IP_SERVIDOR]
 ```bash
 cd [diretorio_fornecido_pelo_TI]/backend
 
-# Exemplo:
+# Exemplo:env
 # cd /var/www/ecoh/backend
 ```
 
