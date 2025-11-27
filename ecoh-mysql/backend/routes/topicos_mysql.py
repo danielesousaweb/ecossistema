@@ -186,7 +186,7 @@ def setup_routes(db, sync_engine, graph_builder):
             )""")
             params.extend([search_pattern, search_pattern])
             
-            where_clause = " AND status = 'active' AND (" + " OR ".join(where_conditions) + ")"
+            where_clause = "status = 'active' AND (" + " OR ".join(where_conditions) + ")"
             
             # Contar total
             count_query = f"SELECT COUNT(*) as total FROM hemera_products WHERE {where_clause}"
