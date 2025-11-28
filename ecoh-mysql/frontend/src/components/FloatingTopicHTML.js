@@ -81,7 +81,7 @@ const FloatingTopicHTML = ({ topico, position3D, camera, onSelect, isHovered, on
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ 
         opacity: position2D.visible ? 1 : 0,
-        scale: position2D.visible ? 1.5 : 0.8  // Aumentado de position2D.scale para fixo 1.5
+        scale: position2D.visible ? 0.6 : 0.5  // REDUZIDO de 1.5 para 0.6 (60% menor)
       }}
       transition={{ duration: 0.3 }}
       style={{
