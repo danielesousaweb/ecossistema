@@ -136,7 +136,7 @@ const FloatingTopicHTML = ({ topico, position3D, camera, onSelect, isHovered, on
             {/* Count badge */}
             {topico.count > 0 && (
               <span 
-                className="text-sm font-medium opacity-80"
+                className="text-xs font-medium opacity-80"
                 style={{
                   fontFamily: 'Roboto, sans-serif',
                   color: '#ffffff'
