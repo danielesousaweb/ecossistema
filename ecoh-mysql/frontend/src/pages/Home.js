@@ -200,8 +200,8 @@ const Home = () => {
     try {
       const response = await axios.get(`${API}/topicos/produtos-por-topico`, {
         params: {
-          nome: valor,
-          categoria: topico.id,
+          campo: topico.id,
+          valor: valor,
           per_page: 50
         }
       });
