@@ -26,15 +26,15 @@ const StarfieldBackground = ({ mousePosition }) => {
     // Criar estrelas
     const createStars = () => {
       const stars = [];
-      const starCount = 200; // Quantidade moderada para não competir com tópicos
+      const starCount = 150; // Reduzido de 200 para 150
       
       for (let i = 0; i < starCount; i++) {
         stars.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          radius: Math.random() * 1.5 + 0.5,
-          opacity: Math.random() * 0.5 + 0.2,
-          twinkleSpeed: Math.random() * 0.02 + 0.005,
+          radius: Math.random() * 1.2 + 0.3, // Estrelas menores
+          opacity: Math.random() * 0.4 + 0.2,
+          twinkleSpeed: Math.random() * 0.015 + 0.003,
           twinklePhase: Math.random() * Math.PI * 2
         });
       }
@@ -53,9 +53,9 @@ const StarfieldBackground = ({ mousePosition }) => {
         star.twinklePhase += star.twinkleSpeed;
         const currentOpacity = star.opacity * (0.5 + Math.sin(star.twinklePhase) * 0.5);
         
-        // Parallax sutil com mouse - REDUZIDO
-        const parallaxX = mousePosition.x * 3;  // Reduzido de 10 para 3
-        const parallaxY = mousePosition.y * 3;  // Reduzido de 10 para 3
+        // Parallax MUITO REDUZIDO - sensibilidade menor
+        const parallaxX = mousePosition.x * 0.5;  // Reduzido de 3 para 0.5
+        const parallaxY = mousePosition.y * 0.5;  // Reduzido de 3 para 0.5
         
         // Desenhar estrela
         ctx.beginPath();
@@ -67,8 +67,8 @@ const StarfieldBackground = ({ mousePosition }) => {
           Math.PI * 2
         );
         ctx.fillStyle = `rgba(255, 255, 255, ${currentOpacity})`;
-        ctx.shadowBlur = 3;
-        ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
+        ctx.shadowBlur = 2;
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.3)';
         ctx.fill();
         ctx.shadowBlur = 0;
       });

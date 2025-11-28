@@ -18,7 +18,7 @@ const FloatingTopic = ({ topico, position, onSelect, isHovered, onHover }) => {
       meshRef.current.rotation.x = Math.sin(time * 0.3) * 0.1;
       
       // Escala no hover
-      const targetScale = isHovered ? 1.3 : 1.0;
+      const targetScale = isHovered ? 1.2 : 1.0;
       meshRef.current.scale.lerp(
         new THREE.Vector3(targetScale, targetScale, targetScale),
         0.1
@@ -34,14 +34,14 @@ const FloatingTopic = ({ topico, position, onSelect, isHovered, onHover }) => {
   
   return (
     <group position={position}>
-      {/* Bolha principal */}
+      {/* Bolha principal - REDUZIDA */}
       <mesh
         ref={meshRef}
         onClick={() => onSelect(topico)}
         onPointerOver={() => onHover(topico)}
         onPointerOut={() => onHover(null)}
       >
-        <sphereGeometry args={[1, 32, 32]} />
+        <sphereGeometry args={[0.6, 32, 32]} />
         <meshPhysicalMaterial
           color={topico.cor || '#00ff88'}
           transparent
@@ -54,9 +54,9 @@ const FloatingTopic = ({ topico, position, onSelect, isHovered, onHover }) => {
         />
       </mesh>
       
-      {/* Glow externo */}
-      <mesh ref={glowRef} scale={1.3}>
-        <sphereGeometry args={[1, 16, 16]} />
+      {/* Glow externo - AJUSTADO */}
+      <mesh ref={glowRef} scale={1.2}>
+        <sphereGeometry args={[0.6, 16, 16]} />
         <meshBasicMaterial
           color={topico.cor || '#00ff88'}
           transparent
@@ -65,9 +65,9 @@ const FloatingTopic = ({ topico, position, onSelect, isHovered, onHover }) => {
         />
       </mesh>
       
-      {/* Anel orbital */}
+      {/* Anel orbital - AJUSTADO */}
       <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[1.2, 0.03, 16, 100]} />
+        <torusGeometry args={[0.75, 0.02, 16, 100]} />
         <meshBasicMaterial
           color={topico.cor || '#00ff88'}
           transparent
