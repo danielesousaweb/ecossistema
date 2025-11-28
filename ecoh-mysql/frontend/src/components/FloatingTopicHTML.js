@@ -100,9 +100,9 @@ const FloatingTopicHTML = ({ topico, position3D, camera, onSelect, isHovered, on
       data-testid={`floating-topic-${topico.id}`}
     >
       <motion.div
-        whileHover={{ scale: 1.15 }}
-        whileTap={{ scale: 0.98 }}
-        className="cursor-pointer backdrop-blur-xl rounded-2xl px-8 py-4 shadow-2xl border-2"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+        className="cursor-pointer backdrop-blur-xl rounded-xl px-4 py-2 shadow-2xl border-2"
         style={{
           background: `linear-gradient(135deg, ${color}15, ${color}08)`,
           borderColor: isHovered ? `${color}80` : `${color}30`,
