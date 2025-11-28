@@ -114,7 +114,7 @@ const FloatingTopicHTML = ({ topico, position3D, camera, onSelect, isHovered, on
         <div className="flex items-center gap-4">
           {/* Ícone */}
           {topico.icone && (
-            <span className="text-4xl" style={{ filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.5))' }}>
+            <span className="text-2xl" style={{ filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.5))' }}>
               {topico.icone}
             </span>
           )}
@@ -122,7 +122,7 @@ const FloatingTopicHTML = ({ topico, position3D, camera, onSelect, isHovered, on
           {/* Texto */}
           <div>
             <h3 
-              className="font-bold text-2xl leading-tight"
+              className="font-bold text-base leading-tight"
               style={{
                 fontFamily: 'Roboto Condensed, sans-serif',
                 color: isHovered ? '#ffffff' : color,
