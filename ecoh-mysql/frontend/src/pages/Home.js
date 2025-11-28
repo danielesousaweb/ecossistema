@@ -348,9 +348,13 @@ const Home = () => {
                 data-testid="home-title"
                 style={{
                   fontFamily: 'Roboto Condensed, sans-serif',
-                  textShadow: '0 0 80px rgba(0, 174, 79, 0.5)'
+                  textShadow: '0 0 80px rgba(255, 140, 0, 0.5)',
+                  background: 'linear-gradient(135deg, #ff8c00, #ffa500, #ff6b35)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text'
                 }}>
-              Tech Mesh Sync
+              Ecossistema Hemera
             </h1>
             <p className="text-white/90 text-xl" style={{ fontFamily: 'Roboto, sans-serif' }}>
               Ecossistema Interativo de Produtos CAS Tecnologia
