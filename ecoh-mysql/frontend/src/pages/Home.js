@@ -141,12 +141,12 @@ const Home = () => {
       if (response.data.success) {
         setTopicos(response.data.data);
         
-        // Calcular posições 3D para os tópicos
+        // Calcular posições 3D para os tópicos - ESPALHADOS
         const topicosList = Object.values(response.data.data);
         const positions = topicosList.map((_, index) => {
           const phi = Math.acos(-1 + (2 * index) / topicosList.length);
           const theta = Math.sqrt(topicosList.length * Math.PI) * phi;
-          const radius = 25;
+          const radius = 40; // Aumentado de 25 para 40 - mais espalhado
           
           return [
             radius * Math.cos(theta) * Math.sin(phi),
