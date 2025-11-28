@@ -170,23 +170,10 @@ def setup_routes(db, sync_engine, graph_builder):
         try:
             q_lower = q.lower()
             
-            # Construir query SQL para busca
-            where_conditions = []
-            params = []
-            
-            # Busca em campos texto
-            where_conditions.append("(sku LIKE %s OR title LIKE %s)")
+            # Busca simples por SKU e título
             search_pattern = f"%{q}%"
-            params.extend([search_pattern, search_pattern])
-            
-            # Busca em JSON fields
-            where_conditions.append("""(
-                JSON_SEARCH(attributes, 'one', %s) IS NOT NULL OR
-                JSON_SEARCH(relationships, 'one', %s) IS NOT NULL
-            )""")
-            params.extend([search_pattern, search_pattern])
-            
-            where_clause = "status = 'active' AND (" + " OR ".join(where_conditions) + ")"
+            where_clause = "status = 'active' AND (sku LIKE %s OR title LIKE %s)"
+            params = [search_pattern, search_pattern]
             
             # Contar total
             count_query = f"SELECT COUNT(*) as total FROM hemera_products WHERE {where_clause}"
