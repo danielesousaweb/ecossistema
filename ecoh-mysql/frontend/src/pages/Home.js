@@ -141,12 +141,14 @@ const Home = () => {
       if (response.data.success) {
         setTopicos(response.data.data);
         
-        // Calcular posições 3D para os tópicos - ESPALHADOS
+        // Calcular posições 3D - DISTRIBUIÇÃO MELHORADA (Espiral de Fibonacci)
         const topicosList = Object.values(response.data.data);
         const positions = topicosList.map((_, index) => {
-          const phi = Math.acos(-1 + (2 * index) / topicosList.length);
-          const theta = Math.sqrt(topicosList.length * Math.PI) * phi;
-          const radius = 40; // Aumentado de 25 para 40 - mais espalhado
+          // Distribuição em espiral de Fibonacci para melhor espaçamento
+          const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+          const theta = index * goldenAngle;
+          const phi = Math.acos(1 - 2 * (index + 0.5) / topicosList.length);
+          const radius = 35; // Raio balanceado
           
           return [
             radius * Math.cos(theta) * Math.sin(phi),
