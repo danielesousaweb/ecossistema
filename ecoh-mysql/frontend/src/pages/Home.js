@@ -141,14 +141,12 @@ const Home = () => {
       if (response.data.success) {
         setTopicos(response.data.data);
         
-        // Calcular posições 3D - DISTRIBUIÇÃO MELHORADA (Espiral de Fibonacci)
+        // Calcular posições 3D para os tópicos - ESPALHADOS
         const topicosList = Object.values(response.data.data);
         const positions = topicosList.map((_, index) => {
-          // Distribuição em espiral de Fibonacci para melhor espaçamento
-          const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-          const theta = index * goldenAngle;
-          const phi = Math.acos(1 - 2 * (index + 0.5) / topicosList.length);
-          const radius = 35; // Raio balanceado
+          const phi = Math.acos(-1 + (2 * index) / topicosList.length);
+          const theta = Math.sqrt(topicosList.length * Math.PI) * phi;
+          const radius = 40; // Aumentado de 25 para 40 - mais espalhado
           
           return [
             radius * Math.cos(theta) * Math.sin(phi),
@@ -336,7 +334,7 @@ const Home = () => {
       ))}
       
       {/* UI Overlay (z-index: 40) */}
-      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 40 }}>
+      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 40 , backgroundImage: "url('/pic/bg-ecossistema-hemera.png')", opacity: 0.7, backgroundSize: "60vw auto", backgroundPosition: "center top", backgroundRepeat: "no-repeat"}}>
         <div className="container mx-auto h-full flex flex-col items-center justify-center px-4">
           
           {/* Logo & Title */}
@@ -346,22 +344,33 @@ const Home = () => {
             transition={{ duration: 0.8 }}
             className="text-center mb-12 pointer-events-auto"
           >
-            <h1 className="text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-green-400 to-white mb-4"
-                data-testid="home-title"
-                style={{
-                  fontFamily: 'Roboto Condensed, sans-serif',
-                  textShadow: '0 0 80px rgba(255, 140, 0, 0.5)',
-                  background: 'linear-gradient(135deg, #ff8c00, #ffa500, #ff6b35)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text'
-                }}>
+            <h1
+              className="text-7xl font-black bg-clip-text mb-4"
+              data-testid="home-title"
+              style={{
+                fontFamily: 'Roboto Condensed, sans-serif',
+                textShadow: '0 0 80px rgba(255, 140, 0, 0.5)',
+                background: '#ffffff',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                marginTop: "150px"
+              }}
+            >
               Ecossistema Hemera
             </h1>
-            <p className="text-white/90 text-xl" style={{ fontFamily: 'Roboto, sans-serif' }}>
+
+            <p
+              className="text-white text-xl"
+              style={{
+                fontFamily: 'Roboto, sans-serif',
+                opacity: 1
+              }}
+            >
               Ecossistema Interativo de Produtos CAS Tecnologia
             </p>
           </motion.div>
+
           
           {/* Search Bar */}
           <motion.div
