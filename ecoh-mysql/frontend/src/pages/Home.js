@@ -134,6 +134,29 @@ const Home = () => {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
   
+  // Posições fixas para até 8 tópicos (baseadas na imagem de referência)
+  const FIXED_POSITIONS_8 = [
+    { left: 10, top: 12 },   // pos1: canto superior esquerdo
+    { left: 50, top: 8 },    // pos2: centro superior
+    { left: 83, top: 14 },   // pos3: canto superior direito
+    { left: 16, top: 52 },   // pos4: meio esquerdo
+    { left: 40, top: 68 },   // pos5: centro inferior esquerdo
+    { left: 72, top: 62 },   // pos6: centro inferior direito
+    { left: 86, top: 46 },   // pos7: meio direito
+    { left: 32, top: 86 }    // pos8: inferior esquerdo
+  ];
+
+  // Converter posições percentuais para coordenadas 3D
+  const convertPercentTo3D = (leftPercent, topPercent) => {
+    // Mapear percentuais para coordenadas 3D
+    // left: 0-100% -> x: -50 a 50
+    // top: 0-100% -> y: 30 a -30 (invertido porque y cresce para cima)
+    const x = (leftPercent - 50) * 1.0;
+    const y = (50 - topPercent) * 0.6;
+    const z = 0; // Manter no mesmo plano Z para melhor visualização
+    return [x, y, z];
+  };
+
   const loadTopicos = async () => {
     try {
       setLoading(true);
@@ -141,19 +164,29 @@ const Home = () => {
       if (response.data.success) {
         setTopicos(response.data.data);
         
-        // Calcular posições 3D para os tópicos - ESPALHADOS
         const topicosList = Object.values(response.data.data);
-        const positions = topicosList.map((_, index) => {
-          const phi = Math.acos(-1 + (2 * index) / topicosList.length);
-          const theta = Math.sqrt(topicosList.length * Math.PI) * phi;
-          const radius = 40; // Aumentado de 25 para 40 - mais espalhado
-          
-          return [
-            radius * Math.cos(theta) * Math.sin(phi),
-            radius * Math.sin(theta) * Math.sin(phi),
-            radius * Math.cos(phi)
-          ];
-        });
+        let positions;
+        
+        // Se tiver 8 ou menos tópicos, usar posições fixas
+        if (topicosList.length <= 8) {
+          positions = topicosList.map((_, index) => {
+            const fixedPos = FIXED_POSITIONS_8[index];
+            return convertPercentTo3D(fixedPos.left, fixedPos.top);
+          });
+        } else {
+          // Se tiver mais que 8, usar distribuição esférica
+          positions = topicosList.map((_, index) => {
+            const phi = Math.acos(-1 + (2 * index) / topicosList.length);
+            const theta = Math.sqrt(topicosList.length * Math.PI) * phi;
+            const radius = 40;
+            
+            return [
+              radius * Math.cos(theta) * Math.sin(phi),
+              radius * Math.sin(theta) * Math.sin(phi),
+              radius * Math.cos(phi)
+            ];
+          });
+        }
         setTopicoPositions(positions);
       }
     } catch (error) {
