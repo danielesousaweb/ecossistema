@@ -1,11 +1,15 @@
 from typing import Dict, Any, List, Optional
 import logging
 import math
+import random
 
 logger = logging.getLogger(__name__)
 
 class GraphBuilder:
-    """Builds unified graph structure for 3D visualization"""
+    """
+    Builds unified graph structure for 3D visualization
+    Uses data directly from unopim_products table
+    """
     
     def __init__(self, db):
         self.db = db
@@ -15,10 +19,12 @@ class GraphBuilder:
         Build complete graph with all nodes and edges
         Returns structure ready for Three.js force-directed layout
         """
-        logger.info("Building complete graph structure")
+        logger.info("[GRAPH] Building complete graph structure from Unopim data")
         
-        # Get all active products
+        # Get all active products from unopim_products
         products = await self.db.find_products({"status": "active"})
+        
+        logger.info(f"[SOURCE: unopim_products] Found {len(products)} active products for graph")
         
         # Collect all unique nodes
         nodes_dict = {}
@@ -62,7 +68,7 @@ class GraphBuilder:
             }
         }
         
-        logger.info(f"Graph built: {len(nodes_list)} nodes, {len(edges_list)} edges")
+        logger.info(f"[GRAPH] Built graph: {len(nodes_list)} nodes, {len(edges_list)} edges")
         return graph
     
     def _create_virtual_node(self, node_id: str, relationship_type: str) -> Dict:
@@ -71,24 +77,30 @@ class GraphBuilder:
         node_type = 'integration'
         color = '#95a5a6'
         
-        if node_id.startswith('mdc_'):
+        if node_id.startswith('mdc_') or relationship_type == 'mdcs':
             node_type = 'mdc'
             color = '#45b7d1'
-        elif node_id.startswith('nic_'):
+        elif node_id.startswith('nic_') or relationship_type == 'nics':
             node_type = 'nic'
             color = '#f7b731'
-        elif node_id.startswith('rs'):
+        elif node_id.startswith('rs') or relationship_type == 'remotas':
             node_type = 'remota'
             color = '#ff6b6b'
-        elif node_id.startswith('int_'):
+        elif node_id.startswith('int_') or relationship_type == 'tipo_integracao':
             node_type = 'integration'
             color = '#a55eea'
-        elif relationship_type == 'protocolo':
+        elif relationship_type in ['protocolo', 'protocolos', 'protocolo_comunicao']:
             node_type = 'protocolo'
             color = '#26de81'
         elif relationship_type == 'comunicacao':
             node_type = 'comunicacao'
             color = '#fd79a8'
+        elif relationship_type == 'hemera' or relationship_type == 'modulos_hemera':
+            node_type = 'hemera'
+            color = '#00cec9'
+        elif relationship_type in ['caracteristicas', 'caractersticas_medidor', 'mobii']:
+            node_type = 'caracteristica'
+            color = '#f7b731'
         
         return {
             "id": node_id,
@@ -109,7 +121,6 @@ class GraphBuilder:
         Modifies nodes in-place
         """
         # Initialize random positions
-        import random
         for node in nodes:
             node['x'] = random.uniform(-10, 10)
             node['y'] = random.uniform(-10, 10)
@@ -183,7 +194,7 @@ class GraphBuilder:
                 node['y'] += forces[i][1] * damping
                 node['z'] += forces[i][2] * damping
         
-        logger.info("3D positions calculated")
+        logger.debug("[GRAPH] 3D positions calculated")
     
     def _identify_clusters(self, nodes: List[Dict], edges: List[Dict]) -> List[Dict]:
         """Identify node clusters by type and connections"""
@@ -216,11 +227,13 @@ class GraphBuilder:
     
     async def get_node_details(self, node_id: str) -> Optional[Dict]:
         """Get detailed information about a specific node"""
-        # Try to find product by SKU
-        products = await self.db.find_products({"sku": node_id})
+        logger.info(f"[GRAPH] Getting node details for: {node_id}")
         
-        if products and len(products) > 0:
-            product = products[0]
+        # Try to find product by SKU
+        product = await self.db.find_product_by_sku(node_id)
+        
+        if product:
+            logger.info(f"[SOURCE: unopim_products] Found product node: {node_id}")
             return {
                 "id": node_id,
                 "sku": product['sku'],
@@ -231,10 +244,11 @@ class GraphBuilder:
                 "relationships": product['relationships'],
                 "categories": product['categories'],
                 "completeness_score": product.get('completeness_score'),
-                "updated_at": product['updated_at']
+                "updated_at": product.get('updated_at')
             }
         
         # Return virtual node info
+        logger.info(f"[GRAPH] Node {node_id} is virtual (not a product)")
         return {
             "id": node_id,
             "type": "virtual",
