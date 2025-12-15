@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
 /**
- * Tópico flutuante usando HTML overlay (mais confiável que Three.js Text)
- * Posicionado com base em coordenadas 3D convertidas para 2D
+ * Tópico flutuante usando HTML overlay
+ * Todos os ícones substituídos por 🔵 (bola azul)
  */
 const FloatingTopicHTML = ({ topico, position3D, camera, onSelect, isHovered, onHover }) => {
   const [position2D, setPosition2D] = useState({ x: 0, y: 0, visible: false });
@@ -40,7 +40,7 @@ const FloatingTopicHTML = ({ topico, position3D, camera, onSelect, isHovered, on
       const isInFront = dz < camera.position.z;
       
       // Projeção com escala ajustada para melhor visualização
-      const scale = 400 / distance;  // Aumentado de 300 para 400
+      const scale = 400 / distance;
       const x = widthHalf + (vector.x - camera.position.x) * scale;
       const y = heightHalf - (vector.y - camera.position.y) * scale;
       
@@ -69,7 +69,10 @@ const FloatingTopicHTML = ({ topico, position3D, camera, onSelect, isHovered, on
       'tipo_integracao': '#00ae4f',
       'hemera': '#0099ff',
       'comunicacao': '#00cc66',
-      'mobii': '#004c96'
+      'mobii': '#004c96',
+      'tipo_medicao': '#f7b731',
+      'nics': '#fd79a8',
+      'remotas': '#ff6b6b'
     };
     return colorMap[topicoId] || '#004c96';
   };
@@ -81,7 +84,7 @@ const FloatingTopicHTML = ({ topico, position3D, camera, onSelect, isHovered, on
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ 
         opacity: position2D.visible ? 1 : 0,
-        scale: position2D.visible ? 0.85 : 0.7  // Aumentado de 0.6 para 0.85
+        scale: position2D.visible ? 0.85 : 0.7
       }}
       transition={{ duration: 0.3 }}
       style={{
@@ -112,12 +115,10 @@ const FloatingTopicHTML = ({ topico, position3D, camera, onSelect, isHovered, on
         }}
       >
         <div className="flex items-center gap-3">
-          {/* Ícone */}
-          {topico.icone && (
-            <span className="text-3xl" style={{ filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.5))' }}>
-              {topico.icone}
-            </span>
-          )}
+          {/* Ícone - Sempre bola azul */}
+          <span className="text-3xl" style={{ filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.5))' }}>
+            🔵
+          </span>
           
           {/* Texto */}
           <div>

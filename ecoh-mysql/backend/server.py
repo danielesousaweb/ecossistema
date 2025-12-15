@@ -9,7 +9,7 @@ from typing import List
 import uuid
 from datetime import datetime, timezone
 
-# Import database
+# Import database (direct Unopim connection)
 from database import db
 
 # Import services
@@ -30,9 +30,9 @@ graph_builder = None
 
 # Create the main app
 app = FastAPI(
-    title="CAS Tecnologia Ecosystem API - MySQL Edition",
-    description="WordPress-compatible API for Unopim product synchronization with MySQL backend",
-    version="2.0.0-mysql"
+    title="CAS Tecnologia Ecosystem API - Direct Unopim",
+    description="API conectada diretamente às tabelas do Unopim (unopim_products, unopim_attributes, unopim_categories)",
+    version="3.0.0-direct"
 )
 
 # Create a router with the /api prefix
@@ -54,9 +54,14 @@ class StatusCheckCreate(BaseModel):
 @api_router.get("/")
 async def root():
     return {
-        "message": "CAS Tecnologia Ecosystem API - MySQL Edition",
-        "version": "2.0.0-mysql",
-        "database": "MySQL 8.0",
+        "message": "CAS Tecnologia Ecosystem API - Direct Unopim Connection",
+        "version": "3.0.0-direct",
+        "database": "MySQL (Direct Unopim Tables)",
+        "tables": {
+            "products": "unopim_products",
+            "attributes": "unopim_attributes",
+            "categories": "unopim_categories"
+        },
         "endpoints": {
             "products": "/api/products",
             "graph": "/api/graph",
@@ -65,29 +70,42 @@ async def root():
         }
     }
 
+@api_router.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    try:
+        # Test database connection
+        products_count = await db.count_products()
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "mode": "direct_unopim",
+            "products_count": products_count
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "database": "disconnected",
+            "error": str(e)
+        }
+
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict for database
-    doc = status_obj.model_dump()
-    
-    # Insert to MySQL
-    await db.insert_status_check(doc)
+    """Create a status check (in-memory only, no database table needed)"""
+    status_obj = StatusCheck(
+        client_name=input.client_name,
+        timestamp=datetime.now(timezone.utc)
+    )
     return status_obj
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Get from MySQL
-    status_checks = await db.find_status_checks()
-    
-    # Convert to response models
-    result = []
-    for check in status_checks:
-        result.append(StatusCheck(**check))
-    
-    return result
+@api_router.get("/status")
+async def get_status():
+    """Get API status"""
+    return {
+        "api_version": "3.0.0-direct",
+        "mode": "direct_unopim",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
 
 
 @app.on_event("startup")
@@ -96,11 +114,14 @@ async def startup_event():
     global unopim_connector, sync_engine, graph_builder
     
     logger = logging.getLogger(__name__)
-    logger.info("Starting application...")
+    logger.info("========================================")
+    logger.info("Starting CAS Ecosystem API - Direct Unopim Mode")
+    logger.info("========================================")
     
-    # Connect to MySQL
+    # Connect to MySQL (Unopim database)
     await db.connect()
-    logger.info("MySQL connection established")
+    logger.info("MySQL connection established to Unopim database")
+    logger.info("Using tables: unopim_products, unopim_attributes, unopim_categories")
     
     # Initialize services
     unopim_connector = UopimConnector()
@@ -122,6 +143,7 @@ async def startup_event():
     api_router.include_router(topicos_router)
     
     logger.info("All services initialized successfully")
+    logger.info("API ready to serve requests")
 
 
 @app.on_event("shutdown")
