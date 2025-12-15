@@ -8,57 +8,97 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/topicos", tags=["topicos"])
 
-# Mapeamento de tópicos em português
-TOPICOS_CONFIG = {
-    "medidores": {
-        "nome": "Medidores",
-        "tipo": "categoria",
-        "campos": ["fabricante_medidor", "modelo_medidor", "senha_medidor"]
-    },
+# Mapeamento de campos para labels amigáveis
+FIELD_LABELS = {
+    'protocolos': 'Protocolos',
+    'protocolo': 'Protocolos',
+    'protocolo_comunicao': 'Protocolos',
+    'tipo_medicao': 'Tipo de Medição',
+    'nics': 'NICs',
+    'remotas': 'Remotas',
+    'comunicacao': 'Comunicação',
+    'mdcs': 'MDCs',
+    'tipo_integracao': 'Tipo de Integração',
+    'hemera': 'Hemera',
+    'mobii': 'MOBii',
+    'caractersticas_medidor': 'Características',
+    'caracterssticas': 'Características',
+    'modulos_hemera': 'Módulos Hemera',
+    'fabricante_medidor': 'Fabricantes',
+    'modelo_medidor': 'Modelos'
+}
+
+# Lista fixa de fallback caso o banco esteja vazio
+FALLBACK_TOPICOS = {
     "protocolos": {
+        "id": "protocolos",
         "nome": "Protocolos",
         "tipo": "grupo",
-        "campo_relacionamento": "protocolo",
-        "valores": ["abnt", "modbus", "ansi", "dlms", "ion", "iec", "pima", "irda"]
+        "icone": "🔵",
+        "cor": "#4ecdc4",
+        "valores": ["abnt", "modbus", "ansi", "dlms", "ion", "iec", "pima", "irda"],
+        "count": 8
     },
-    "caracteristicas": {
-        "nome": "Características",
+    "tipo_medicao": {
+        "id": "tipo_medicao",
+        "nome": "Tipo de Medição",
         "tipo": "grupo",
-        "campo_relacionamento": "caracterssticas",
-        "valores": [
-            "registrador", "fasorial", "memoria_massa", "eventos",
-            "tarifa_branca", "qualidade", "gd", "parametrizacao",
-            "corte_religue", "comandos_smc"
-        ]
-    },
-    "mdcs": {
-        "nome": "MDCs",
-        "tipo": "grupo",
-        "campo_relacionamento": "mdcs",
-        "valores": ["mdc_iris", "sanplat", "orca", "command_center", "ims", "sade"]
-    },
-    "tipo_integracao": {
-        "nome": "Tipo de Integração",
-        "tipo": "grupo",
-        "campo_relacionamento": "tipo_integracao",
-        "valores": ["int_cas", "cas_appia_json", "int_iec61698", "int_terceiros"]
-    },
-    "hemera": {
-        "nome": "Hemera",
-        "tipo": "grupo",
-        "campo_relacionamento": "modulos_hemera",
-        "valores": ["CI", "R", "RS", "F"]
-    },
-    "mobii": {
-        "nome": "MOBii",
-        "tipo": "atributo",
-        "campo": "mobii"
+        "icone": "🔵",
+        "cor": "#f7b731",
+        "valores": ["smi", "smc", "mci", "smlc"],
+        "count": 4
     },
     "comunicacao": {
+        "id": "comunicacao",
         "nome": "Comunicação",
         "tipo": "grupo",
-        "campo_relacionamento": "comunicacao",
-        "valores": ["4g", "wifi", "ethernet", "gprs", "lora"]
+        "icone": "🔵",
+        "cor": "#26de81",
+        "valores": ["3g", "4g", "nb", "ethernet", "satelite", "wisun", "gridstream"],
+        "count": 7
+    },
+    "mdcs": {
+        "id": "mdcs",
+        "nome": "MDCs",
+        "tipo": "grupo",
+        "icone": "🔵",
+        "cor": "#45b7d1",
+        "valores": ["iris", "sanplat", "orca", "command_center", "ims", "sade"],
+        "count": 6
+    },
+    "hemera": {
+        "id": "hemera",
+        "nome": "Hemera",
+        "tipo": "grupo",
+        "icone": "🔵",
+        "cor": "#ff6b6b",
+        "valores": ["ci", "residencial", "residencial_smart", "fronteira"],
+        "count": 4
+    },
+    "caracteristicas": {
+        "id": "caracteristicas",
+        "nome": "Características",
+        "tipo": "grupo",
+        "icone": "🔵",
+        "cor": "#a55eea",
+        "valores": ["registrador", "fasorial", "memoria_massa", "eventos", "tarifa_branca", "qualidade", "gd", "parametrizacao", "corte_religue"],
+        "count": 9
+    },
+    "tipo_integracao": {
+        "id": "tipo_integracao",
+        "nome": "Tipo de Integração",
+        "tipo": "grupo",
+        "icone": "🔵",
+        "cor": "#fd79a8",
+        "valores": ["cas", "cas_appia_json", "iec_61698", "terceiros"],
+        "count": 4
+    },
+    "mobii": {
+        "id": "mobii",
+        "nome": "MOBii",
+        "tipo": "feature",
+        "icone": "🔵",
+        "cor": "#00cec9"
     }
 }
 
@@ -69,212 +109,159 @@ def setup_routes(db, sync_engine, graph_builder):
     async def listar_todos_topicos():
         """
         Lista todos os tópicos disponíveis dinamicamente
-        Analisa produtos no banco e gera lista unificada
+        Lê diretamente das tabelas do Unopim (unopim_products, unopim_attributes)
         """
         try:
-            topicos_dinamicos = []
+            logger.info("[TOPICOS] Buscando tópicos dinâmicos das tabelas Unopim")
             
-            # Buscar todos os produtos ativos
-            products = await db.hemera_products.find({"status": "active"}).to_list(1000)
+            topicos_dinamicos = {}
             
-            # Extrair valores únicos de todos os campos de relacionamento
-            valores_encontrados = {
-                "protocolos": set(),
-                "caracteristicas": set(),
-                "mdcs": set(),
-                "tipo_integracao": set(),
-                "hemera": set(),
-                "comunicacao": set(),
-                "fabricantes": set(),
-                "modelos": set()
-            }
-            
-            for product in products:
-                relationships = product.get('relationships', {})
-                attributes = product.get('attributes', {})
+            # 1. Tentar buscar atributos filtráveis da tabela unopim_attributes
+            try:
+                atributos = await db.find_filterable_attributes()
+                logger.info(f"[SOURCE: unopim_attributes] Encontrados {len(atributos)} atributos filtráveis")
                 
-                # Protocolos
-                if 'protocolo' in relationships:
-                    valores_encontrados['protocolos'].update(relationships['protocolo'])
-                
-                # Características
-                if 'caracterssticas' in relationships:
-                    valores_encontrados['caracteristicas'].update(relationships['caracterssticas'])
-                
-                # MDCs
-                if 'mdcs' in relationships:
-                    valores_encontrados['mdcs'].update(relationships['mdcs'])
-                
-                # Tipo Integração
-                if 'tipo_integracao' in relationships:
-                    valores_encontrados['tipo_integracao'].update(relationships['tipo_integracao'])
-                
-                # Hemera
-                if 'modulos_hemera' in relationships:
-                    valores_encontrados['hemera'].update(relationships['modulos_hemera'])
-                
-                # Comunicação
-                if 'comunicacao' in relationships:
-                    valores_encontrados['comunicacao'].update(relationships['comunicacao'])
-                
-                # Fabricantes e Modelos
-                if 'fabricante_medidor' in attributes:
-                    valores_encontrados['fabricantes'].add(attributes['fabricante_medidor'])
-                if 'modelo_medidor' in attributes:
-                    valores_encontrados['modelos'].add(attributes['modelo_medidor'])
-            
-            # Construir estrutura de tópicos
-            topicos_estruturados = {
-                "medidores": {
-                    "id": "medidores",
-                    "nome": "Medidores",
-                    "tipo": "categoria",
-                    "icone": "📟",
-                    "cor": "#00ff88",
-                    "subtopicos": [
-                        {
-                            "id": "fabricantes",
-                            "nome": "Fabricantes",
-                            "valores": sorted(list(valores_encontrados['fabricantes'])),
-                            "count": len(valores_encontrados['fabricantes'])
-                        },
-                        {
-                            "id": "modelos",
-                            "nome": "Modelos",
-                            "valores": sorted(list(valores_encontrados['modelos'])),
-                            "count": len(valores_encontrados['modelos'])
+                for attr in atributos:
+                    code = attr.get('code', '')
+                    if code and code not in ['sku', 'nome_medidor', 'modelo_medidor']:
+                        label = FIELD_LABELS.get(code, code.replace('_', ' ').title())
+                        topicos_dinamicos[code] = {
+                            "id": code,
+                            "nome": label,
+                            "tipo": "grupo" if attr.get('type') in ['multiselect', 'select'] else "atributo",
+                            "icone": "🔵",
+                            "cor": _get_color_for_field(code),
+                            "valores": [],
+                            "count": 0,
+                            "source": "unopim_attributes"
                         }
-                    ]
-                },
-                "protocolos": {
-                    "id": "protocolos",
-                    "nome": "Protocolos",
-                    "tipo": "grupo",
-                    "icone": "🔌",
-                    "cor": "#4ecdc4",
-                    "valores": sorted(list(valores_encontrados['protocolos'])),
-                    "count": len(valores_encontrados['protocolos'])
-                },
-                "caracteristicas": {
-                    "id": "caracteristicas",
-                    "nome": "Características",
-                    "tipo": "grupo",
-                    "icone": "⚡",
-                    "cor": "#f7b731",
-                    "valores": sorted(list(valores_encontrados['caracteristicas'])),
-                    "count": len(valores_encontrados['caracteristicas'])
-                },
-                "mdcs": {
-                    "id": "mdcs",
-                    "nome": "MDCs",
-                    "tipo": "grupo",
-                    "icone": "🖥️",
-                    "cor": "#45b7d1",
-                    "valores": sorted(list(valores_encontrados['mdcs'])),
-                    "count": len(valores_encontrados['mdcs'])
-                },
-                "tipo_integracao": {
-                    "id": "tipo_integracao",
-                    "nome": "Tipo de Integração",
-                    "tipo": "grupo",
-                    "icone": "🔗",
-                    "cor": "#a55eea",
-                    "valores": sorted(list(valores_encontrados['tipo_integracao'])),
-                    "count": len(valores_encontrados['tipo_integracao'])
-                },
-                "hemera": {
-                    "id": "hemera",
-                    "nome": "Hemera",
-                    "tipo": "grupo",
-                    "icone": "🌟",
-                    "cor": "#ff6b6b",
-                    "valores": sorted(list(valores_encontrados['hemera'])),
-                    "count": len(valores_encontrados['hemera'])
-                },
-                "comunicacao": {
-                    "id": "comunicacao",
-                    "nome": "Comunicação",
-                    "tipo": "grupo",
-                    "icone": "📡",
-                    "cor": "#26de81",
-                    "valores": sorted(list(valores_encontrados['comunicacao'])),
-                    "count": len(valores_encontrados['comunicacao'])
-                },
-                "mobii": {
-                    "id": "mobii",
-                    "nome": "MOBii",
-                    "tipo": "feature",
-                    "icone": "📱",
-                    "cor": "#fd79a8"
-                }
-            }
+            except Exception as e:
+                logger.warning(f"[SOURCE: unopim_attributes] Erro ao buscar atributos: {str(e)}")
+            
+            # 2. Buscar valores únicos dos produtos ativos
+            try:
+                products = await db.find_products({"status": "active"})
+                logger.info(f"[SOURCE: unopim_products] Encontrados {len(products)} produtos ativos")
+                
+                # Extrair valores únicos de todos os campos de relacionamento
+                valores_por_campo = {}
+                
+                for product in products:
+                    relationships = product.get('relationships', {})
+                    attributes = product.get('attributes', {})
+                    
+                    # Processar relationships
+                    for field, values in relationships.items():
+                        if field not in valores_por_campo:
+                            valores_por_campo[field] = set()
+                        if isinstance(values, list):
+                            valores_por_campo[field].update(values)
+                        elif values:
+                            valores_por_campo[field].add(str(values))
+                    
+                    # Processar alguns atributos específicos
+                    for field in ['fabricante_medidor', 'modelo_medidor']:
+                        if field in attributes and attributes[field]:
+                            if field not in valores_por_campo:
+                                valores_por_campo[field] = set()
+                            valores_por_campo[field].add(str(attributes[field]))
+                
+                # Construir tópicos a partir dos valores encontrados
+                for field, values in valores_por_campo.items():
+                    values_list = sorted([v for v in values if v])
+                    if not values_list:
+                        continue
+                    
+                    # Normalizar nome do campo
+                    normalized_field = _normalize_field_name(field)
+                    label = FIELD_LABELS.get(field, FIELD_LABELS.get(normalized_field, field.replace('_', ' ').title()))
+                    
+                    if normalized_field in topicos_dinamicos:
+                        topicos_dinamicos[normalized_field]['valores'] = values_list
+                        topicos_dinamicos[normalized_field]['count'] = len(values_list)
+                    else:
+                        topicos_dinamicos[normalized_field] = {
+                            "id": normalized_field,
+                            "nome": label,
+                            "tipo": "grupo",
+                            "icone": "🔵",
+                            "cor": _get_color_for_field(normalized_field),
+                            "valores": values_list,
+                            "count": len(values_list),
+                            "source": "unopim_products"
+                        }
+                
+                logger.info(f"[TOPICOS] Gerados {len(topicos_dinamicos)} tópicos dinâmicos")
+                
+            except Exception as e:
+                logger.warning(f"[SOURCE: unopim_products] Erro ao buscar produtos: {str(e)}")
+            
+            # 3. Se não encontrou nada, usar fallback
+            if not topicos_dinamicos:
+                logger.warning("[TOPICOS] Nenhum tópico dinâmico encontrado, usando fallback")
+                topicos_dinamicos = FALLBACK_TOPICOS.copy()
             
             return WPRestResponse(
                 success=True,
-                data=topicos_estruturados
+                data=topicos_dinamicos
             )
         
         except Exception as e:
             logger.error(f"Erro ao listar tópicos: {str(e)}")
-            raise HTTPException(status_code=500, detail=str(e))
+            # Retornar fallback em caso de erro
+            return WPRestResponse(
+                success=True,
+                data=FALLBACK_TOPICOS
+            )
     
     @router.get("/produtos-por-topico", response_model=WPRestResponse)
     async def buscar_produtos_por_topico(
-        nome: str = Query(..., description="Nome do tópico ou valor"),
-        categoria: Optional[str] = Query(None, description="Categoria do tópico"),
+        campo: str = Query(..., description="Campo do tópico (ex: protocolo, mdcs)"),
+        valor: Optional[str] = Query(None, description="Valor específico do campo"),
         page: int = Query(1, ge=1),
         per_page: int = Query(20, ge=1, le=100)
     ):
         """
         Retorna produtos associados a um tópico específico
+        Busca diretamente na tabela unopim_products
         """
         try:
-            nome_lower = nome.lower()
-            query = {"status": "active"}
+            if not valor:
+                return WPRestResponse(
+                    success=True,
+                    data=[],
+                    total=0
+                )
             
-            # Construir query baseada no tópico
-            if categoria == "protocolos":
-                query["relationships.protocolo"] = {"$in": [nome_lower]}
-            elif categoria == "caracteristicas":
-                query["relationships.caracterssticas"] = {"$in": [nome_lower]}
-            elif categoria == "mdcs":
-                query["relationships.mdcs"] = {"$regex": nome_lower, "$options": "i"}
-            elif categoria == "tipo_integracao":
-                query["relationships.tipo_integracao"] = {"$in": [nome_lower]}
-            elif categoria == "hemera":
-                query["relationships.modulos_hemera"] = {"$in": [nome_lower.upper()]}
-            elif categoria == "comunicacao":
-                query["relationships.comunicacao"] = {"$in": [nome_lower]}
-            elif categoria == "fabricante":
-                query["attributes.fabricante_medidor"] = {"$regex": nome_lower, "$options": "i"}
-            elif categoria == "modelo":
-                query["attributes.modelo_medidor"] = {"$regex": nome_lower, "$options": "i"}
-            elif categoria == "mobii":
-                query["attributes.mobii"] = "true"
-            else:
-                # Busca genérica em todos os campos
-                query["$or"] = [
-                    {"relationships.protocolo": {"$in": [nome_lower]}},
-                    {"relationships.caracterssticas": {"$in": [nome_lower]}},
-                    {"relationships.mdcs": {"$regex": nome_lower, "$options": "i"}},
-                    {"relationships.tipo_integracao": {"$in": [nome_lower]}},
-                    {"relationships.comunicacao": {"$in": [nome_lower]}},
-                    {"attributes.fabricante_medidor": {"$regex": nome_lower, "$options": "i"}},
-                    {"attributes.modelo_medidor": {"$regex": nome_lower, "$options": "i"}},
-                    {"sku": {"$regex": nome, "$options": "i"}},
-                    {"title": {"$regex": nome, "$options": "i"}}
-                ]
+            logger.info(f"[TOPICOS] Buscando produtos com {campo}={valor}")
             
-            # Contar total
-            total = await db.hemera_products.count_documents(query)
+            # Mapear campo normalizado para possíveis variações
+            field_variations = _get_field_variations(campo)
             
-            # Buscar produtos paginados
-            skip = (page - 1) * per_page
-            products = await db.hemera_products.find(query, {"_id": 0}).skip(skip).limit(per_page).to_list(per_page)
+            all_products = []
+            for field in field_variations:
+                products = await db.get_products_by_field_value(field, valor, limit=per_page * 2)
+                all_products.extend(products)
+            
+            # Remover duplicatas por SKU
+            seen_skus = set()
+            unique_products = []
+            for p in all_products:
+                if p['sku'] not in seen_skus:
+                    seen_skus.add(p['sku'])
+                    unique_products.append(p)
+            
+            # Paginar resultados
+            total = len(unique_products)
+            start = (page - 1) * per_page
+            end = start + per_page
+            paginated = unique_products[start:end]
+            
+            logger.info(f"[SOURCE: unopim_products] Encontrados {total} produtos para {campo}={valor}")
             
             return WPRestResponse(
                 success=True,
-                data=products,
+                data=paginated,
                 total=total,
                 page=page,
                 per_page=per_page
@@ -292,38 +279,28 @@ def setup_routes(db, sync_engine, graph_builder):
     ):
         """
         Busca global em produtos e tópicos
+        Busca diretamente na tabela unopim_products
         """
         try:
-            q_lower = q.lower()
+            q_lower = q.lower().strip()
+            
+            logger.info(f"[TOPICOS] Busca global: {q}")
             
             # Busca em produtos
-            query = {
-                "status": "active",
-                "$or": [
-                    {"sku": {"$regex": q, "$options": "i"}},
-                    {"title": {"$regex": q, "$options": "i"}},
-                    {"attributes.fabricante_medidor": {"$regex": q_lower, "$options": "i"}},
-                    {"attributes.modelo_medidor": {"$regex": q_lower, "$options": "i"}},
-                    {"relationships.protocolo": {"$in": [q_lower]}},
-                    {"relationships.caracterssticas": {"$in": [q_lower]}},
-                    {"relationships.mdcs": {"$regex": q_lower, "$options": "i"}},
-                    {"relationships.tipo_integracao": {"$in": [q_lower]}},
-                    {"relationships.comunicacao": {"$in": [q_lower]}}
-                ]
-            }
+            products = await db.search_products(q, status='active', limit=per_page * 2)
             
-            # Contar e buscar
-            total = await db.hemera_products.count_documents(query)
-            skip = (page - 1) * per_page
-            products = await db.hemera_products.find(query, {"_id": 0}).skip(skip).limit(per_page).to_list(per_page)
+            total = len(products)
+            start = (page - 1) * per_page
+            end = start + per_page
+            paginated = products[start:end]
             
-            # Buscar em tópicos também
+            # Buscar em tópicos
             topicos_response = await listar_todos_topicos()
             topicos = topicos_response.data
             
             topicos_match = []
             for key, topico in topicos.items():
-                if q_lower in topico['nome'].lower():
+                if q_lower in topico.get('nome', '').lower():
                     topicos_match.append(topico)
                 elif 'valores' in topico:
                     for valor in topico['valores']:
@@ -334,10 +311,12 @@ def setup_routes(db, sync_engine, graph_builder):
                             })
                             break
             
+            logger.info(f"[SOURCE: unopim_products] Busca global encontrou {total} produtos e {len(topicos_match)} tópicos")
+            
             return WPRestResponse(
                 success=True,
                 data={
-                    "produtos": products,
+                    "produtos": paginated,
                     "topicos": topicos_match,
                     "total_produtos": total,
                     "total_topicos": len(topicos_match)
@@ -352,3 +331,48 @@ def setup_routes(db, sync_engine, graph_builder):
             raise HTTPException(status_code=500, detail=str(e))
     
     return router
+
+
+# Helper functions
+def _get_color_for_field(field: str) -> str:
+    """Retorna cor para cada tipo de campo"""
+    color_map = {
+        'protocolos': '#4ecdc4',
+        'protocolo': '#4ecdc4',
+        'protocolo_comunicao': '#4ecdc4',
+        'tipo_medicao': '#f7b731',
+        'nics': '#fd79a8',
+        'remotas': '#ff6b6b',
+        'comunicacao': '#26de81',
+        'mdcs': '#45b7d1',
+        'tipo_integracao': '#a55eea',
+        'hemera': '#ff6b6b',
+        'mobii': '#00cec9',
+        'caracteristicas': '#f7b731',
+        'caractersticas_medidor': '#f7b731',
+        'fabricante_medidor': '#00ff88',
+        'modelo_medidor': '#00ff88'
+    }
+    return color_map.get(field, '#95a5a6')
+
+
+def _normalize_field_name(field: str) -> str:
+    """Normaliza variações de nomes de campos"""
+    normalizations = {
+        'protocolo': 'protocolos',
+        'protocolo_comunicao': 'protocolos',
+        'caractersticas_medidor': 'caracteristicas',
+        'caracterssticas': 'caracteristicas'
+    }
+    return normalizations.get(field, field)
+
+
+def _get_field_variations(campo: str) -> List[str]:
+    """Retorna todas as variações possíveis de um nome de campo"""
+    variations = {
+        'protocolos': ['protocolos', 'protocolo', 'protocolo_comunicao'],
+        'caracteristicas': ['caracteristicas', 'caractersticas_medidor', 'caracterssticas'],
+        'hemera': ['hemera', 'modulos_hemera'],
+        'comunicacao': ['comunicacao', 'midia_comunicacao']
+    }
+    return variations.get(campo, [campo])
