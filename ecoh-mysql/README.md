@@ -1,96 +1,86 @@
-# CAS Tecnologia Ecosystem - MySQL Edition
+# CAS Tecnologia Ecosystem - Direct Unopim Connection
 
-🚀 **Sistema de sincronização Unopim → WordPress com backend MySQL 8.0**
+🚀 **Frontend React conectado diretamente às tabelas do Unopim**
 
-## 📋 Migração MongoDB → MySQL
+## 📋 Versão 3.0.0 - Direct Unopim
 
-Este projeto é uma migração completa do sistema ECOH original (MongoDB) para MySQL 8.0.
+Esta versão elimina as tabelas intermediárias e conecta diretamente às tabelas padrão do Unopim:
+- `unopim_products`
+- `unopim_attributes`
+- `unopim_categories`
 
-### Principais Mudanças
-
-- ✅ **Motor → aiomysql**: Substituído driver MongoDB por MySQL async
-- ✅ **Collections → Tables**: 5 tabelas SQL estruturadas
-- ✅ **JSON Columns**: Mantém flexibilidade para dados dinâmicos
-- ✅ **Queries SQL**: Todas as operações adaptadas para SQL
-- ✅ **100% Compatível**: Frontend não precisa mudar
+### ✅ Vantagens
+- **Dados sempre atualizados**: Lê diretamente do Unopim
+- **Sem sincronização**: Não precisa de processos de sync
+- **Menos complexidade**: Sem tabelas intermediárias
+- **Manutenção simplificada**: Menos código para manter
 
 ## 🗄️ Estrutura do Banco
 
-### Tabelas Principais
+### Tabelas do Unopim Utilizadas
 
-1. **hemera_products**: Produtos transformados do Unopim
-2. **acf_schema**: Definições de campos dinâmicos (ACF)
-3. **webhook_events**: Eventos de sincronização
-4. **sync_logs**: Logs de operações
-5. **status_checks**: Verificações de status
+| Tabela | Uso |
+|--------|-----|
+| `unopim_products` | Produtos com campo `values` (JSON) |
+| `unopim_attributes` | Definições de atributos filtráveis |
+| `unopim_categories` | Categorias de produtos |
 
-### JSON Columns
+### Estrutura do Campo `values` (JSON)
 
-- `attributes`: Atributos do produto (JSON)
-- `relationships`: Relacionamentos (JSON)
-- `categories`: Categorias (JSON Array)
-- `graph_node`: Dados do nó 3D (JSON)
-- `graph_edges`: Conexões do grafo (JSON Array)
+```json
+{
+  "common": {
+    "sku": "E750G2",
+    "nome_medidor": "E750G2 (COM NIC CAS)",
+    "fabricante_medidor": "landis",
+    "modelo_medidor": "8721",
+    "medidor_senha": "true",
+    "protocolo_comunicao": "abnt,dlms",
+    "tipo_medicao": "mci",
+    "caractersticas_medidor": "registrador,fasorial,memoria_massa"
+  },
+  "categories": ["medidores"]
+}
+```
 
 ## 🚀 Instalação
 
-### 1. Instalar MySQL 8.0
+### 1. Configurar Conexão com o Banco
 
-```bash
-# Ubuntu/Debian
-sudo apt update
-sudo apt install mysql-server-8.0
-
-# Iniciar serviço
-sudo systemctl start mysql
-sudo systemctl enable mysql
-
-# Configurar senha root
-sudo mysql_secure_installation
-```
-
-### 2. Criar Banco de Dados
-
-```bash
-mysql -u root -p
-
-CREATE DATABASE ecoh_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'ecoh_user'@'localhost' IDENTIFIED BY 'senha_segura';
-GRANT ALL PRIVILEGES ON ecoh_db.* TO 'ecoh_user'@'localhost';
-FLUSH PRIVILEGES;
-EXIT;
-```
-
-### 3. Configurar Ambiente
-
-Edite `/app/ecoh-mysql/backend/.env`:
+Edite o arquivo `/app/ecoh-mysql/backend/.env`:
 
 ```env
 MYSQL_HOST=localhost
 MYSQL_PORT=3306
-MYSQL_USER=ecoh_user
-MYSQL_PASSWORD=senha_segura
-MYSQL_DATABASE=ecoh_db
+MYSQL_USER=seu_usuario
+MYSQL_PASSWORD=sua_senha
+MYSQL_DATABASE=unopim
 
 CORS_ORIGINS=*
-API_PORT=8001
 ```
 
-### 4. Instalar Dependências
+### 2. Instalar Dependências Backend
 
 ```bash
 cd /app/ecoh-mysql/backend
 pip install -r requirements.txt
 ```
 
-### 5. Popular Banco de Dados
+### 3. Instalar Dependências Frontend
 
 ```bash
-cd /app/ecoh-mysql/backend
-python seed_data.py
+cd /app/ecoh-mysql/frontend
+yarn install
 ```
 
-### 6. Iniciar Servidor
+### 4. Build do Frontend
+
+```bash
+cd /app/ecoh-mysql/frontend
+yarn build
+```
+
+### 5. Iniciar Backend
 
 ```bash
 cd /app/ecoh-mysql/backend
@@ -99,6 +89,11 @@ uvicorn server:app --host 0.0.0.0 --port 8001 --reload
 
 ## 📡 API Endpoints
 
+### Tópicos (Filtros Dinâmicos)
+- `GET /api/topicos` - Lista tópicos dinâmicos do Unopim
+- `GET /api/topicos/produtos-por-topico?campo=X&valor=Y` - Produtos por tópico
+- `GET /api/topicos/busca-global?q=termo` - Busca global
+
 ### Produtos
 - `GET /api/products` - Listar produtos
 - `GET /api/products/{sku}` - Detalhes do produto
@@ -106,118 +101,133 @@ uvicorn server:app --host 0.0.0.0 --port 8001 --reload
 - `GET /api/products/categories/list` - Categorias
 
 ### Grafo 3D
-- `GET /api/graph/complete` - Grafo completo
+- `GET /api/graph/complete` - Grafo completo para visualização
 - `GET /api/graph/node/{node_id}` - Detalhes do nó
-- `GET /api/graph/clusters` - Clusters
-- `WS /api/graph/ws` - WebSocket updates
 
-### Webhooks
-- `POST /api/webhooks/unopim` - Webhook Unopim
-- `POST /api/webhooks/trigger-sync` - Sincronização manual
-- `GET /api/webhooks/sync-status` - Status da sincronização
+### Status
+- `GET /api/health` - Health check
+- `GET /api/webhooks/sync-status` - Status da conexão
 
-## 🔧 Configuração de Produção
+## 📝 Cadastro de Atributos no Unopim
 
-### Performance
+### Atributos Recomendados (multiselect)
 
-```sql
--- Ajustar parâmetros MySQL
-SET GLOBAL max_connections = 200;
-SET GLOBAL innodb_buffer_pool_size = 1G;
-SET GLOBAL innodb_log_file_size = 256M;
+| Código | Label | Tipo |
+|--------|-------|------|
+| `fabricante_medidor` | Fabricante | select |
+| `modelo_medidor` | Modelo | text |
+| `nome_medidor` | Nome | text |
+| `medidor_senha` | Senha | boolean |
+| `protocolo_comunicao` | Protocolos | multiselect |
+| `tipo_medicao` | Tipo de Medição | multiselect |
+| `nics` | NICs | multiselect |
+| `remotas` | Remotas | multiselect |
+| `comunicacao` | Mídia Comunicação | multiselect |
+| `mdcs` | MDCs | multiselect |
+| `tipo_integracao` | Tipo Integração | multiselect |
+| `hemera` | Hemera | multiselect |
+| `caractersticas_medidor` | Características | multiselect |
+
+### Valores para Campos Multiselect
+
+**Protocolos:** `abnt, modbus, ansi, dlms, ion, iec, pima, irda`
+
+**Tipo de Medição:** `smi, smc, mci, smlc`
+
+**NICs:** `cas, weg`
+
+**Remotas:** `cas, star_measure, zaruc, deshtec`
+
+**Comunicação:** `3g, 4g, nb, ethernet, satelite, wisun, gridstream`
+
+**MDCs:** `iris, sanplat, orca, command_center, ims, sade`
+
+**Tipo Integração:** `cas, cas_appia_json, iec_61698, terceiros`
+
+**Hemera:** `ci, residencial, residencial_smart, fronteira`
+
+**Características:** `registrador, fasorial, memoria_massa, eventos, tarifa_branca, qualidade, gd, parametrizacao, corte_religue, comandos_smc`
+
+## 🎨 Frontend - Alterações Visuais
+
+### Ícones
+- Todos os ícones dos tópicos foram substituídos por 🔵 (bola azul)
+
+### Posicionamento das Bolhas (≤ 8 tópicos)
+```
+pos1: left 10%  top 12%  (canto superior esquerdo)
+pos2: left 50%  top 8%   (centro superior)
+pos3: left 83%  top 14%  (canto superior direito)
+pos4: left 16%  top 52%  (meio esquerdo)
+pos5: left 40%  top 68%  (centro inferior esquerdo)
+pos6: left 72%  top 62%  (centro inferior direito)
+pos7: left 86%  top 46%  (meio direito)
+pos8: left 32%  top 86%  (inferior esquerdo)
 ```
 
-### Backups
+## 📁 Arquivos Modificados
+
+### Backend
+- `database.py` - Conexão direta com tabelas Unopim
+- `routes/topicos.py` - Tópicos dinâmicos do Unopim
+- `routes/products.py` - Produtos do Unopim
+- `routes/webhooks.py` - Simplificado (sem sync)
+- `services/graph_builder.py` - Grafo do Unopim
+- `server.py` - Inicialização atualizada
+
+### Frontend
+- `components/FloatingTopicHTML.js` - Ícone 🔵
+- `pages/Home.js` - Posições fixas das bolhas
+
+## 🔧 Ativação no Servidor (via mRemoteNG)
+
+1. **Upload dos arquivos via FTP**
+2. **Conectar via SSH (mRemoteNG)**
+3. **Executar comandos:**
 
 ```bash
-# Backup completo
-mysqldump -u ecoh_user -p ecoh_db > backup_$(date +%Y%m%d).sql
+# Navegar para o diretório
+cd /home/daniele.sousa/ecoh-mysql
 
-# Restaurar
-mysql -u ecoh_user -p ecoh_db < backup_20250118.sql
+# Instalar dependências backend
+cd backend
+pip install -r requirements.txt
+
+# Configurar .env (editar com seus dados)
+cp .env.example .env
+nano .env
+
+# Build do frontend
+cd ../frontend
+yarn install
+yarn build
+
+# Reiniciar serviços (ajustar conforme seu servidor)
+sudo systemctl restart ecoh-backend
+# ou
+pm2 restart ecoh-backend
 ```
-
-### Índices
-
-```sql
--- Verificar índices
-SHOW INDEX FROM hemera_products;
-
--- Análise de performance
-EXPLAIN SELECT * FROM hemera_products WHERE status = 'active';
-```
-
-## 📊 Comparação MongoDB vs MySQL
-
-| Aspecto | MongoDB | MySQL 8.0 |
-|---------|---------|-----------|
-| Schema | Flexível (schemaless) | Estruturado + JSON |
-| Queries | find(), aggregate() | SQL SELECT, JOIN |
-| Transactions | Multi-doc (4.0+) | ACID completo |
-| Indexes | Automáticos | Definidos manualmente |
-| JSON | Nativo | JSON columns (8.0+) |
-| Performance | Alta leitura | Alta escrita + leitura |
 
 ## 🐛 Troubleshooting
 
 ### Erro: "Access denied for user"
-```bash
-mysql -u root -p
-GRANT ALL PRIVILEGES ON ecoh_db.* TO 'ecoh_user'@'localhost';
-FLUSH PRIVILEGES;
+Verifique as credenciais no arquivo `.env`
+
+### Erro: "Table 'unopim_products' doesn't exist"
+Confirme que o prefixo das tabelas é `unopim_`
+
+### Tópicos não aparecem
+Verifique se há produtos com `status = 1` no Unopim
+
+### Logs de Debug
+Os logs indicam a fonte dos dados:
 ```
-
-### Erro: "Table doesn't exist"
-```bash
-cd /app/ecoh-mysql/backend
-mysql -u ecoh_user -p ecoh_db < schema.sql
+[SOURCE: unopim_products] Found 10 products
+[SOURCE: unopim_attributes] Found 15 filterable attributes
 ```
-
-### Erro: "Lost connection to MySQL server"
-```sql
-SET GLOBAL max_allowed_packet=64M;
-SET GLOBAL wait_timeout=600;
-```
-
-## 📝 Logs
-
-```bash
-# Backend logs
-tail -f /var/log/supervisor/backend.*.log
-
-# MySQL logs
-sudo tail -f /var/log/mysql/error.log
-
-# Query log (desenvolvimento)
-SET GLOBAL general_log = 'ON';
-tail -f /var/log/mysql/query.log
-```
-
-## 🔐 Segurança
-
-### Produção
-
-1. **Mudar senhas padrão**
-2. **Usar SSL/TLS** para conexões MySQL
-3. **Firewall**: Bloquear porta 3306 externamente
-4. **Backup regular** automático
-5. **Monitorar logs** de acesso
-
-## 📚 Documentação
-
-- [Documentação Completa](./docs/COMPLETE_SYSTEM_DOCUMENTATION.md)
-- [Guia de Instalação](./docs/GUIA_INSTALACAO_SERVIDOR.md)
-- [MySQL 8.0 JSON](https://dev.mysql.com/doc/refman/8.0/en/json.html)
-
-## 🆘 Suporte
-
-Para problemas ou dúvidas:
-1. Verifique os logs
-2. Consulte a documentação
-3. Revise as configurações do .env
 
 ---
 
-**Versão**: 2.0.0-mysql  
-**Migrado de**: MongoDB 4.4 → MySQL 8.0  
-**Data**: 2025-01-18
+**Versão**: 3.0.0-direct  
+**Conexão**: Direta com tabelas Unopim  
+**Data**: 2025-01
