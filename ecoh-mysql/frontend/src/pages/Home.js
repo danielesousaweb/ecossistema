@@ -437,7 +437,7 @@ const Home = () => {
               }}
             >
               <div className="flex items-center gap-3">
-                <span className="text-4xl">{hoveredTopic.icone}</span>
+                <span className="text-4xl">🔵</span>
                 <div>
                   <h3 className="text-cyan-100 font-bold text-lg">{hoveredTopic.nome}</h3>
                   {hoveredTopic.count > 0 && (
