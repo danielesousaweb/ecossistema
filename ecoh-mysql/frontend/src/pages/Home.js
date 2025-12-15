@@ -458,7 +458,7 @@ const Home = () => {
           setProdutos([]);
         }}
         title={lightboxContent?.nome || ''}
-        icon={lightboxContent?.icone}
+        icon="🔵"
       >
         {lightboxContent && (
           <div className="space-y-6">
