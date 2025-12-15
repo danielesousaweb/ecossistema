@@ -34,7 +34,7 @@ class MySQLDatabase:
         try:
             self.pool = await aiomysql.create_pool(**self.config)
             logger.info(f"Connected to MySQL database: {self.config['db']} (Direct Unopim mode)")
-            logger.info(f"Using tables: unopim_products, unopim_attributes, unopim_categories")
+            logger.info("Using tables: unopim_products, unopim_attributes, unopim_categories")
         except Exception as e:
             logger.error(f"Failed to connect to MySQL: {str(e)}")
             raise
