@@ -228,7 +228,7 @@ class MySQLDatabase:
             ORDER BY position ASC, code ASC
         """
         
-        logger.debug(f"[SOURCE: unopim_attributes] Finding filterable attributes")
+        logger.debug("[SOURCE: unopim_attributes] Finding filterable attributes")
         
         async with self.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cursor:
